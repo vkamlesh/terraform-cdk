@@ -2,9 +2,10 @@
   "language": "typescript",
   "app": "npx ts-node main.ts",
   "projectId": "{{projectId}}",
+  "sendCrashReports": "{{sendCrashReports}}",
   "terraformProviders": [],
   "terraformModules": [],
   "context": {
-    {{futureFlags}}
+{{futureFlags}}
   }
 }

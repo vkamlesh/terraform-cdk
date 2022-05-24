@@ -1,12 +1,13 @@
 import { ReportParams, ReportRequest } from "./checkpoint";
-import { versionNumber } from "../bin/cmds/helper/version-check";
+import { DISPLAY_VERSION } from "./version";
+import * as Sentry from "@sentry/node";
 
 // Errors that will emit telemetry events
 async function report(command: string, payload: Record<string, any>) {
   const reportParams: ReportParams = {
     command,
     product: "cdktf",
-    version: versionNumber(),
+    version: `${DISPLAY_VERSION}`,
     dateTime: new Date(),
     payload,
   };
@@ -45,5 +46,6 @@ export const Errors = {
   // Set the scope for all errors
   setScope(scope: string) {
     errorScope = scope;
+    Sentry.configureScope((s) => s.setTransactionName(scope));
   },
 };

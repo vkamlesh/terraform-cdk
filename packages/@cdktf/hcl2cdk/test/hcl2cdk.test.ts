@@ -22,9 +22,8 @@ const providers = [
 enum Synth {
   yes,
   needsAFix_BooleanAsIResolvable, // https://github.com/hashicorp/terraform-cdk/issues/1550
-  needsAFix_MaximumCallStackSizeExceeded, // https://github.com/hashicorp/terraform-cdk/issues/1551
-  needsAFix_UnforseenRename, // https://github.com/hashicorp/terraform-cdk/issues/1552
-  needsAFix_StringIsNotAssignableToListOfString, // https://github.com/hashicorp/terraform-cdk/issues/1553
+  needsAFix_UnforseenClassRename, // https://github.com/hashicorp/terraform-cdk/issues/1552
+  needsAFix_UnforseenPropertyRename, // https://github.com/hashicorp/terraform-cdk/issues/1708
   never, // Some examples are built so that they will never synth but test a specific generation edge case
 }
 
@@ -87,12 +86,7 @@ const createTestCase =
         });
       }
 
-      if (
-        [
-          Synth.needsAFix_BooleanAsIResolvable,
-          Synth.needsAFix_MaximumCallStackSizeExceeded,
-        ].includes(shouldSynth)
-      ) {
+      if ([Synth.needsAFix_BooleanAsIResolvable].includes(shouldSynth)) {
         it.todo("plans");
       }
     });
@@ -122,7 +116,7 @@ describe("convert", () => {
     // Initialize a new project
     projectDir = fs.mkdtempSync("cdktf-convert-test");
     execSync(
-      `cd ${projectDir} && ${cdktfBin} init --local --dist=${cdktfDist} --project-name="hello" --project-description="world" --template=typescript`
+      `cd ${projectDir} && ${cdktfBin} init --local --dist=${cdktfDist} --project-name="hello" --project-description="world" --template=typescript --enable-crash-reporting=false`
     );
     const cdktfJson = JSON.parse(
       fs.readFileSync(path.join(projectDir, "cdktf.json"), "utf8")
@@ -733,6 +727,9 @@ describe("convert", () => {
   testCase.test(
     "for_each loops",
     `
+    provider "aws" {
+      region                      = "us-east-1"
+    }
       variable "users" {
         type = set(string)
       }
@@ -747,7 +744,7 @@ describe("convert", () => {
         }
       }
       `,
-    Synth.needsAFix_MaximumCallStackSizeExceeded
+    Synth.yes
   );
 
   testCase.test(
@@ -831,6 +828,9 @@ describe("convert", () => {
   testCase.test(
     "dynamic blocks",
     `
+      provider "aws" {
+        region                      = "us-east-1"
+      }
       variable "settings" {
         type = list(map(string))
       }
@@ -853,7 +853,7 @@ describe("convert", () => {
           }
         }
       }`,
-    Synth.needsAFix_MaximumCallStackSizeExceeded
+    Synth.yes
   );
 
   testCase.test(
@@ -942,6 +942,10 @@ describe("convert", () => {
   testCase.test(
     "complex for each loops",
     `
+  provider "aws" {
+    region = "us-east-1"
+  }
+
   resource "aws_acm_certificate" "example" {
     domain_name       = "example.com"
     validation_method = "DNS"
@@ -986,7 +990,7 @@ describe("convert", () => {
   }
           
   `,
-    Synth.needsAFix_StringIsNotAssignableToListOfString
+    Synth.yes
   );
 
   testCase.test(
@@ -1150,7 +1154,7 @@ describe("convert", () => {
         display_name        = each.key
       }
       `,
-    Synth.needsAFix_UnforseenRename
+    Synth.needsAFix_UnforseenClassRename
   );
 
   testCase.test(
@@ -1292,6 +1296,45 @@ describe("convert", () => {
       }
       `,
     Synth.yes
+  );
+
+  testCase.test(
+    "property level renamings",
+    `
+    provider "aws" {
+      region                      = "us-east-1"
+    }
+    resource "aws_guardduty_filter" "MyFilter" {
+      name        = "MyFilter"
+      action      = "ARCHIVE"
+      detector_id = "id"
+      rank        = 1
+    
+      finding_criteria {
+        criterion {
+          field  = "region"
+          equals = ["eu-west-1"]
+        }
+    
+        criterion {
+          field      = "service.additionalInfo.threatListName"
+          not_equals = ["some-threat", "another-threat"]
+        }
+    
+        criterion {
+          field        = "updatedAt"
+          greater_than = "2020-01-01T00:00:00Z"
+          less_than    = "2020-02-01T00:00:00Z"
+        }
+    
+        criterion {
+          field                 = "severity"
+          greater_than_or_equal = "4"
+        }
+      }
+    }
+      `,
+    Synth.needsAFix_UnforseenPropertyRename
   );
 
   const targetLanguages = ["typescript", "python", "csharp", "java"];

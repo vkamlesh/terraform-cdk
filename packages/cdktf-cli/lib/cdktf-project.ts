@@ -344,6 +344,12 @@ export class CdktfProject {
 
   private stopAllStacks() {
     this.stacksToRun.forEach((stack) => stack.stop());
+    this.eventBuffer = this.eventBuffer.filter(
+      (event) =>
+        event.type === "projectUpdate"
+          ? event.value.type !== "waiting for approval" // we want to filter out the waiting for approval events
+          : true // we want all other types
+    );
   }
 
   private waitForApproval() {
@@ -492,6 +498,10 @@ export class CdktfProject {
       getSingleStack(stacks, opts?.stackName, "diff")
     );
     await stack.diff();
+    if (!stack.currentPlan)
+      throw Errors.External(
+        `Stack failed to plan: ${stack.stack.name}. Please check the logs for more information.`
+      );
     return stack.currentPlan;
   }
 

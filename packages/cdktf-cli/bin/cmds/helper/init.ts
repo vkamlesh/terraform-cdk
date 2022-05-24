@@ -29,12 +29,18 @@ import {
 } from "@cdktf/provider-generator";
 import { templates, templatesDir } from "./init-templates";
 import { init, Project } from "../../../lib";
+import { askForCrashReportingConsent } from "../../../lib/error-reporting";
+import ciDetect from "@npmcli/ci-detect";
 
 const chalkColour = new chalk.Instance();
 
+const isReadme = (file: string) => file.toLowerCase() === "readme.md";
+
 export function checkForEmptyDirectory(dir: string) {
   if (
-    fs.readdirSync(dir).filter((f) => !f.startsWith(".") && f !== logFileName)
+    fs
+      .readdirSync(dir)
+      .filter((f) => !f.startsWith(".") && f !== logFileName && !isReadme(f))
       .length > 0
   ) {
     console.error(
@@ -53,6 +59,7 @@ type Options = {
   dist?: string;
   destination: string;
   fromTerraformProject?: string;
+  enableCrashReporting?: boolean;
 };
 export async function runInit(argv: Options) {
   const telemetryData: Record<string, unknown> = {};
@@ -118,6 +125,11 @@ This means that your Terraform state file will be stored locally on disk in a fi
     }
   }
 
+  const ci: string | false = ciDetect();
+  const sendCrashReports =
+    argv.enableCrashReporting ??
+    (ci ? false : await askForCrashReportingConsent());
+
   await init({
     cdktfVersion: argv.cdktfVersion,
     destination,
@@ -125,6 +137,7 @@ This means that your Terraform state file will be stored locally on disk in a fi
     projectId,
     projectInfo,
     templatePath: templateInfo.Path,
+    sendCrashReports: sendCrashReports,
   });
 
   if (argv.fromTerraformProject) {

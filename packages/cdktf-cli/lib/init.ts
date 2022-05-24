@@ -27,6 +27,7 @@ export type InitArgs = {
   projectId: string;
   projectInfo: Project;
   templatePath: string;
+  sendCrashReports: boolean;
 };
 
 export async function init({
@@ -36,11 +37,12 @@ export async function init({
   projectId,
   projectInfo,
   templatePath,
+  sendCrashReports,
 }: InitArgs) {
   const deps: any = await determineDeps(cdktfVersion, dist);
 
   const futureFlags = Object.entries(FUTURE_FLAGS)
-    .map(([key, value]) => `"${key}": "${value}"`)
+    .map(([key, value]) => `    "${key}": "${value}"`)
     .join(`,\n`);
 
   await sscaff(templatePath, destination, {
@@ -48,6 +50,7 @@ export async function init({
     ...projectInfo,
     futureFlags,
     projectId,
+    sendCrashReports,
   });
 }
 

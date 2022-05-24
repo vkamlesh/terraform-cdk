@@ -1,3 +1,127 @@
+## 0.11.0 (Unreleased)
+
+**Breaking Changes**
+
+Abbreviated version below, for a guide see [Upgrade Guide for 0.11](./docs/upgrade-guide/upgrading-to-0.11.md)
+
+### `TF_VAR_` prefixed environment variables can no longer be accessed at synth time
+
+These environment variables will now be filtered out in the synth phase since they are only intended to be used during diff (plan) and deploy (apply) phases to supply values for [`TerraformVariable`s](https://www.terraform.io/cdktf/concepts/variables-and-outputs#input-variables). This inhibits accidentally inlining those values into the generated `cdk.tf.json` config.
+
+### Environment variable and CLI option changes
+
+- `DEBUG` is replaced by setting `CDKTF_LOG_LEVEL=debug`, setting the `CDKTF_LOG_LEVEL` to debug will now also behave like `DEBUG=1` and include logs from the provider generation
+- `CDKTF_DISABLE_LOGGING=false` is replaced by setting `CDKTF_LOG_FILE_DIRECTORY=/path/to/logs/directory`. If left empty no logs will be written.
+- `--disable-logging` was removed, instead use the environment variable `CDKTF_LOG_LEVEL=off`
+- `DISABLE_VERSION_CHECK`, `CDKTF_DISABLE_PLUGIN_CACHE_ENV` need to be set to `true` or `1`, before anything worked.
+
+### Stack ids can no longer contain whitespaces
+
+A `TerraformStack` may no longer contain whitespace characters, since we rely on paths being whitespace free. If you have a stack with an id containing a whitespace, please replace it with a hyphen. If the stack was already deployed with the default `LocalBackend` you might need to rename your statefile to match the new stack id.
+
+### Computed Map References are referenced through getter
+
+For computed maps, the reference is now through a getter.
+
+To access `{ property = "value" }`, instead of `resource.mapAttribute("property")` you can now use `resource.mapAttribute.lookup("property")`.
+
+### Use ComplexLists and ComplexMaps for complex assignable properties [#1725](https://github.com/hashicorp/terraform-cdk/pull/1725)
+
+Assignable properties of the form `Object[]` or `{ [key: string]: Object }` no longer have setters; they instead have `putX` methods. The getter return type is also changed to be a derivative of either `ComplexList` or `ComplexMap`.
+
+### fix
+
+- fix(docs): Make sure code example works [\#1807](https://github.com/hashicorp/terraform-cdk/pull/1807)
+- fix(lib): Delay complex object fqn so that override id can still be used [\#1793](https://github.com/hashicorp/terraform-cdk/pull/1793)
+- fix(provider-generator): strictly adhere to the provider schema [\#1792](https://github.com/hashicorp/terraform-cdk/pull/1792)
+- fix: Avoid unstable fqn for TerraformElements [\#1779](https://github.com/hashicorp/terraform-cdk/pull/1779)
+- fix(cli): Respect CDKTF_HOME environment variable for checkpoint telemetry [\#1778](https://github.com/hashicorp/terraform-cdk/pull/1778)
+- fix(docs): remove outdated docs from the previous watch implementation [\#1768](https://github.com/hashicorp/terraform-cdk/pull/1768)
+- fix(cli): throw an error if a stack contains a whitespace [\#1750](https://github.com/hashicorp/terraform-cdk/pull/1750)
+
+### feat
+
+- feat(lib): add docstrings to gcs/http/local backend resources [\#1803](https://github.com/hashicorp/terraform-cdk/pull/1803)
+- feat(lib): add a warning about id fields [\#1802](https://github.com/hashicorp/terraform-cdk/pull/1802)
+- feat(docs): add guidance around secrets and warn that those values might be inlined in the generated Terraform config [\#1801](https://github.com/hashicorp/terraform-cdk/pull/1801)
+- feat(lib): add docstrings to cos/etcd/etcdv3 backend resources [\#1783](https://github.com/hashicorp/terraform-cdk/pull/1783)
+- feat(lib): add docstrings to artifactory/azurerm/consul backend resources [\#1781](https://github.com/hashicorp/terraform-cdk/pull/1781)
+- feat(lib): add docstrings to S3 backend resource [\#1780](https://github.com/hashicorp/terraform-cdk/pull/1780)
+- feat(release): support running releases on backport-release branches besides only on main [\#1770](https://github.com/hashicorp/terraform-cdk/pull/1770)
+- feat(cli): add cdktf provider add command [\#1761](https://github.com/hashicorp/terraform-cdk/pull/1761)
+- feat(provider-generator): Use `ComplexList` for any complex list [\#1725](https://github.com/hashicorp/terraform-cdk/pull/1725)
+
+### test
+
+- test(lib): ensure list mapper does not fail when passed IResolvables [\#1791](https://github.com/hashicorp/terraform-cdk/pull/1791)
+
+### chore
+
+- chore: group needs to be prefixed per type [\#1813](https://github.com/hashicorp/terraform-cdk/pull/1813)
+- chore: limit CI concurrency to the latest pushed commits [\#1810](https://github.com/hashicorp/terraform-cdk/pull/1810)
+- chore(cli): add sentry error reporting [\#1809](https://github.com/hashicorp/terraform-cdk/pull/1809)
+- chore: document computed map reference documentation [\#1775](https://github.com/hashicorp/terraform-cdk/pull/1775)
+- chore(release): Update changelog to contain backported release for 0.10.4 [\#1773](https://github.com/hashicorp/terraform-cdk/pull/1773)
+- chore(docs): document how to debug cdktf programs [\#1758](https://github.com/hashicorp/terraform-cdk/pull/1758)
+
+## 0.10.4
+
+### fix
+
+- fix(cli): Stop pinning jest in TS init template [\#1769](https://github.com/hashicorp/terraform-cdk/pull/1769)
+
+## 0.10.3
+
+### feat
+
+- feat(provider-generator): emit a versions.json file to the output directory, containing the used provider versions [\#1749](https://github.com/hashicorp/terraform-cdk/pull/1749)
+- feat(cli): debug command [\#1731](https://github.com/hashicorp/terraform-cdk/pull/1731)
+
+### chore
+
+- chore(cli): add environment variable to disable version checks [\#1757](https://github.com/hashicorp/terraform-cdk/pull/1757)
+- chore: drop Terraform v0.15.7 from Docker image and replace with v1.1.9 for running tests [\#1747](https://github.com/hashicorp/terraform-cdk/pull/1747)
+- chore: add Terraform v1.1.9 to Docker image [\#1743](https://github.com/hashicorp/terraform-cdk/pull/1743)
+- chore(docs): update env var usage [\#1693](https://github.com/hashicorp/terraform-cdk/pull/1693)
+
+### fix
+
+- fix(lib): Add new optional AWS route attributes [\#1755](https://github.com/hashicorp/terraform-cdk/pull/1755)
+- fix(cli): handle version check more defensively [\#1753](https://github.com/hashicorp/terraform-cdk/pull/1753)
+- fix(cli): we should not send wait for approval if a stop has been issued [\#1740](https://github.com/hashicorp/terraform-cdk/pull/1740)
+- fix(cli): Fix indentation of RemoteBackend in CSharp and Java template [\#1733](https://github.com/hashicorp/terraform-cdk/pull/1733)
+- fix(cli): fix templates to properly indent cdktf.json and add RemoteBackend in TS template [\#1732](https://github.com/hashicorp/terraform-cdk/pull/1732)
+
+## 0.10.2
+
+### fix
+
+- fix(tests): pin awscc version [\#1727](https://github.com/hashicorp/terraform-cdk/pull/1727)
+- fix(cli): return non-zero exit code in case of error when using cdktf diff [\#1726](https://github.com/hashicorp/terraform-cdk/pull/1726)
+- fix(cli): allow init command to run in a directory containing a README.md [\#1722](https://github.com/hashicorp/terraform-cdk/pull/1722)
+- fix(provider-generator): Include "arn" when assignable [\#1716](https://github.com/hashicorp/terraform-cdk/pull/1716)
+- fix(hcl2cdk): detect list extensions in strings and wrap them in an array [\#1707](https://github.com/hashicorp/terraform-cdk/pull/1707)
+- fix(lib): override values containing intrinsic tokens caused an infinite loop [\#1702](https://github.com/hashicorp/terraform-cdk/pull/1702)
+- fix(lib): contextualize error messages in terraform functions [\#1699](https://github.com/hashicorp/terraform-cdk/pull/1699)
+- fix(cli): fix path for `.terraform` directory [\#1694](https://github.com/hashicorp/terraform-cdk/pull/1694)
+- fix(cli): improve cli error handling [\#1687](https://github.com/hashicorp/terraform-cdk/pull/1687)
+
+### chore
+
+- chore: align versions to an unpublished version [\#1718](https://github.com/hashicorp/terraform-cdk/pull/1718)
+- chore(docs): update convert docs [\#1701](https://github.com/hashicorp/terraform-cdk/pull/1701)
+- chore(docs): update aspect docs [\#1690](https://github.com/hashicorp/terraform-cdk/pull/1690)
+- chore: npm-check-updates && yarn upgrade [\#1683](https://github.com/hashicorp/terraform-cdk/pull/1683)
+
+### test
+
+- test(hcl2cdk): add test case for property renaming [\#1709](https://github.com/hashicorp/terraform-cdk/pull/1709)
+
+### feat
+
+- feat(cli): warn users about misaligned CLI and library versions [\#1700](https://github.com/hashicorp/terraform-cdk/pull/1700)
+- feat(lib): improve error messages around misused list mutation [\#1691](https://github.com/hashicorp/terraform-cdk/pull/1691)
+
 ## 0.10.1
 
 ### fix
