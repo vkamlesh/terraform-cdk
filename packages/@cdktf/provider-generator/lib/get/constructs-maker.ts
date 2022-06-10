@@ -222,41 +222,31 @@ export class ConstructsMaker {
     );
   }
 
-  private async generateTypeScript() {
-    const endSchemaReadTimer = logTimespan("Reading Schema");
-    const schema = await readSchema(this.targets);
+  private async generateTypescript(target: ConstructsMakerTarget) {
+    const endSchemaReadTimer = logTimespan(`Reading Schema for ${target.name}`);
+    const schema = await readSchema([target]);
     endSchemaReadTimer();
-    const endTSTimer = logTimespan("Generate Typescript");
 
-    const moduleTargets: ConstructsMakerModuleTarget[] = this.targets.filter(
-      (target) => target instanceof ConstructsMakerModuleTarget
-    ) as ConstructsMakerModuleTarget[];
-    for (const target of moduleTargets) {
+    const endTSTimer = logTimespan(`Generate Typescript for ${target.name}`);
+
+    if (target instanceof ConstructsMakerModuleTarget) {
       target.spec = schema.moduleSchema[target.moduleKey];
+      new ModuleGenerator(this.code, [target]);
     }
-
-    const providerTargets: ConstructsMakerProviderTarget[] =
-      this.targets.filter(
-        (target) => target instanceof ConstructsMakerProviderTarget
-      ) as ConstructsMakerProviderTarget[];
-
-    if (providerTargets.length > 0) {
-      new TerraformProviderGenerator(
-        this.code,
-        schema.providerSchema,
-        providerTargets
-      );
+    if (target instanceof ConstructsMakerProviderTarget) {
+      new TerraformProviderGenerator(this.code, schema.providerSchema, [
+        target,
+      ]);
     }
-
-    if (moduleTargets.length > 0) {
-      new ModuleGenerator(this.code, moduleTargets);
-    }
-
     endTSTimer();
   }
 
   public async generate() {
-    await this.generateTypeScript();
+    const endGenerateTimer = logTimespan("Generate TS");
+    await Promise.all(
+      this.targets.map((target) => this.generateTypescript(target))
+    );
+    endGenerateTimer();
 
     if (this.isJavascriptTarget) {
       await this.save();
