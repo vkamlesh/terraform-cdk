@@ -7,6 +7,7 @@ import {
   BlockType,
   isAttributeNestedType,
   isNestedTypeAttribute,
+  ProviderSchema,
   Schema,
 } from "./provider-schema";
 import {
@@ -488,14 +489,42 @@ class Parser {
 }
 
 export class ResourceParser {
+  constructor(private readonly schema: ProviderSchema) {}
+  private resources: Record<string, ResourceModel> = {};
+  private getCacheKey(provider: string, type: string, terraformType: string) {
+    return `${provider}_${type}_${terraformType}`;
+  }
   public parse(
     provider: string,
     type: string,
-    schema: Schema,
     terraformType: string
   ): ResourceModel {
+    const cacheKey = this.getCacheKey(provider, type, terraformType);
+    if (this.resources[cacheKey]) {
+      return this.resources[cacheKey];
+    }
+
     const parser = new Parser();
-    const resource = parser.resourceFrom(provider, type, schema, terraformType);
+    const resource = parser.resourceFrom(
+      provider,
+      type,
+      this.schema,
+      terraformType
+    );
+
+    this.resources[cacheKey] = resource;
     return resource;
+  }
+
+  public getClassNameForResource(
+    providerName: string,
+    resourceName: string,
+    terraformType: string
+  ) {
+    const resource =
+      this.resources[
+        this.getCacheKey(providerName, resourceName, terraformType)
+      ];
+    return resource ? resource.className : "";
   }
 }
